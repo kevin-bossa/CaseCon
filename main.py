@@ -1,29 +1,36 @@
+import re
+
 class TextModes:
     @staticmethod
-    def snake_case(text)
+    def snake_case(text):
+        return (re.sub(r'\s+', '_', text)).lower()
 
     @staticmethod
-    def kebab_case(text)
+    def kebab_case(text):
+        return (re.sub(r'\s+', '-', text)).lower()
+    @staticmethod
+    def camel_case(text):
+        words = text.split()
+        return words[0].lower() + ''.join(word.capitalize() for word in words[1:])
 
     @staticmethod
-    def camel_case(text)
+    def pascal_case(text):
+        return ''.join(word.capitalize() for word in text.split())
 
     @staticmethod
-    def pascal_case(text)
-
-    @staticmethod
-    def upper_snake_case(text)
+    def upper_snake_case(text):
+        return (re.sub(r'\s+', '_', text)).upper()
     
 MODES = {
     "uppercase" : str.upper,
     "lowercase" : str.lower,
     "titlecase" : str.title,
     "sentencecase" : str.capitalize,
-    "snakecase": snake_case,
-    "kebabcase": kebab_case,
-    "camelcase": camel_case,
-    "pascalcase": pascal_case,
-    "uppersnakecase": upper_snake_case,
+    "snakecase": TextModes.snake_case,
+    "kebabcase": TextModes.kebab_case,
+    "camelcase": TextModes.camel_case,
+    "pascalcase": TextModes.pascal_case,
+    "uppersnakecase": TextModes.upper_snake_case,
 }
 
 def transform_text(text, mode):
@@ -37,7 +44,9 @@ def main():
         mode = input("Enter mode:")
         transformed = transform_text(text, mode)
         print(f"Transformed text: {transformed}\n")
-main()
+        
+if __name__ == "__main__":
+    main()
 
 
 
