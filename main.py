@@ -1,36 +1,32 @@
 import re
 
 class TextModes:
+
+    @staticmethod
+    def macro_case(text):
+        return (re.sub(r'\s+', '_', text)).upper()
+
     @staticmethod
     def snake_case(text):
         return (re.sub(r'\s+', '_', text)).lower()
-
-    @staticmethod
-    def kebab_case(text):
-        return (re.sub(r'\s+', '-', text)).lower()
-    @staticmethod
-    def camel_case(text):
-        words = text.split()
-        return words[0].lower() + ''.join(word.capitalize() for word in words[1:])
-
+        
     @staticmethod
     def pascal_case(text):
         return ''.join(word.capitalize() for word in text.split())
-
+    
     @staticmethod
-    def upper_snake_case(text):
-        return (re.sub(r'\s+', '_', text)).upper()
+    def kebab_case(text):
+        return (re.sub(r'\s+', '-', text)).lower()
     
 MODES = {
     "uppercase" : str.upper,
     "lowercase" : str.lower,
     "titlecase" : str.title,
     "sentencecase" : str.capitalize,
+    "macrocase": TextModes.macro_case,
     "snakecase": TextModes.snake_case,
-    "kebabcase": TextModes.kebab_case,
-    "camelcase": TextModes.camel_case,
     "pascalcase": TextModes.pascal_case,
-    "uppersnakecase": TextModes.upper_snake_case,
+    "kebabcase": TextModes.kebab_case,
 }
 
 def transform_text(text, mode):
