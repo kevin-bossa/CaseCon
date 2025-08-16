@@ -1,0 +1,14 @@
+{
+    "shortcuts": {
+        "uppercase": "CTRL+SHIFT+U",
+        "lowercase": "CTRL+SHIFT+L",
+        "titlecase": "NONE",
+        "sentencecase": "NONE",
+        "macrocase": "NONE",
+        "snakecase": "NONE",
+        "pascalcase": "NONE",
+        "kebabcase": "NONE"
+    },
+    "start_with_windows": 0,
+    "start_hidden_tray": 0
+}
