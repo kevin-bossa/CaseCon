@@ -2,8 +2,8 @@
     "shortcuts": {
         "uppercase": "CTRL+SHIFT+U",
         "lowercase": "CTRL+SHIFT+L",
-        "titlecase": "NONE",
-        "sentencecase": "NONE",
+        "titlecase": "CTRL+SHIFT+S",
+        "sentencecase": "CTRL+SHIFT+B",
         "macrocase": "NONE",
         "snakecase": "NONE",
         "pascalcase": "NONE",
