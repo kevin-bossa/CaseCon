@@ -1,13 +1,13 @@
 {
     "shortcuts": {
-        "uppercase": "NONE",
-        "lowercase": "NONE",
-        "titlecase": "CTRL+WIN+ALT+T",
-        "sentencecase": "CTRL+WIN+ALT+C",
-        "macrocase": "CTRL+WIN+ALT+M",
-        "snakecase": "CTRL+WIN+ALT+S",
-        "pascalcase": "CTRL+WIN+ALT+P",
-        "kebabcase": "CTRL+WIN+ALT+K"
+        "uppercase": "29+91+56+22",
+        "lowercase": "29+91+56+38",
+        "titlecase": "29+91+56+20",
+        "sentencecase": "29+91+56+46",
+        "macrocase": "29+91+56+50",
+        "snakecase": "29+91+56+31",
+        "pascalcase": "29+91+56+25",
+        "kebabcase": "29+91+56+37"
     },
     "start_with_windows": 0,
     "start_hidden_tray": 0

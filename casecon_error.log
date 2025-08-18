@@ -793,3 +793,48 @@ ModuleNotFoundError: No module named 'keyboard'
 [2025-08-18 15:48:43] Failed to register hotkey CTRL+WIN+ALT+S for snakecase: invalid literal for int() with base 10: 'CTRL'
 [2025-08-18 15:48:43] Failed to register hotkey CTRL+WIN+ALT+P for pascalcase: invalid literal for int() with base 10: 'CTRL'
 [2025-08-18 15:48:43] Failed to register hotkey CTRL+WIN+ALT+K for kebabcase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:09:49] Failed to register hotkey 29+91+56+22 for uppercase: unhashable type: 'list'
+[2025-08-18 17:09:49] Failed to register hotkey 29+91+56+38 for lowercase: unhashable type: 'list'
+[2025-08-18 17:09:49] Failed to register hotkey CTRL+WIN+ALT+T for titlecase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:09:49] Failed to register hotkey CTRL+WIN+ALT+C for sentencecase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:09:49] Failed to register hotkey CTRL+WIN+ALT+M for macrocase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:09:49] Failed to register hotkey CTRL+WIN+ALT+S for snakecase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:09:49] Failed to register hotkey CTRL+WIN+ALT+P for pascalcase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:09:49] Failed to register hotkey CTRL+WIN+ALT+K for kebabcase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:09:57] Failed to register hotkey 29+91+56+24 for uppercase: unhashable type: 'list'
+[2025-08-18 17:09:57] Failed to register hotkey 29+91+56+38 for lowercase: unhashable type: 'list'
+[2025-08-18 17:09:57] Failed to register hotkey CTRL+WIN+ALT+T for titlecase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:09:57] Failed to register hotkey CTRL+WIN+ALT+C for sentencecase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:09:57] Failed to register hotkey CTRL+WIN+ALT+M for macrocase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:09:57] Failed to register hotkey CTRL+WIN+ALT+S for snakecase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:09:57] Failed to register hotkey CTRL+WIN+ALT+P for pascalcase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:09:57] Failed to register hotkey CTRL+WIN+ALT+K for kebabcase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:10:32] Failed to register hotkey 29+91+56+24 for uppercase: unhashable type: 'list'
+[2025-08-18 17:10:32] Failed to register hotkey 29+91+56+38 for lowercase: unhashable type: 'list'
+[2025-08-18 17:10:32] Failed to register hotkey CTRL+WIN+ALT+T for titlecase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:10:32] Failed to register hotkey CTRL+WIN+ALT+C for sentencecase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:10:32] Failed to register hotkey CTRL+WIN+ALT+M for macrocase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:10:32] Failed to register hotkey CTRL+WIN+ALT+S for snakecase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:10:32] Failed to register hotkey CTRL+WIN+ALT+P for pascalcase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:10:32] Failed to register hotkey CTRL+WIN+ALT+K for kebabcase: invalid literal for int() with base 10: 'CTRL'
+[2025-08-18 17:57:29] Failed to set initial hotkey uppercase: ("Key '29' is not mapped to any known key.", ValueError("Key name '29' is not mapped to any known key."))
+[2025-08-18 17:57:29] Failed to set initial hotkey lowercase: ("Key '29' is not mapped to any known key.", ValueError("Key name '29' is not mapped to any known key."))
+[2025-08-18 17:58:12] Failed to set initial hotkey uppercase: ("Key '29' is not mapped to any known key.", ValueError("Key name '29' is not mapped to any known key."))
+[2025-08-18 17:58:12] Failed to set initial hotkey lowercase: ("Key '29' is not mapped to any known key.", ValueError("Key name '29' is not mapped to any known key."))
+[2025-08-18 18:06:11] Global keyboard hook initialized successfully
+[2025-08-18 18:06:32] Global keyboard hook cleaned up
+[2025-08-18 18:07:48] Global keyboard hook initialized successfully
+[2025-08-18 18:08:36] Error executing transformation for uppercase: Could not read the selected text. Make sure Ctrl+C works.
+[2025-08-18 18:09:09] Global keyboard hook cleaned up
+[2025-08-18 18:09:21] Global keyboard hook initialized successfully
+[2025-08-18 18:10:10] Error executing transformation for lowercase: Could not read the selected text. Make sure Ctrl+C works.
+[2025-08-18 18:10:15] Error executing transformation for lowercase: Could not read the selected text. Make sure Ctrl+C works.
+[2025-08-18 18:10:17] Error executing transformation for uppercase: Could not read the selected text. Make sure Ctrl+C works.
+[2025-08-18 18:10:18] Global keyboard hook cleaned up
+[2025-08-18 18:10:57] Global keyboard hook initialized successfully
+[2025-08-18 18:11:17] Global keyboard hook cleaned up
+[2025-08-18 18:11:19] Global keyboard hook initialized successfully
+[2025-08-18 18:11:22] Global keyboard hook cleaned up
+[2025-08-18 18:11:35] Global keyboard hook initialized successfully
+[2025-08-18 18:12:11] Error executing transformation for lowercase: Could not read the selected text. Make sure Ctrl+C works.
+[2025-08-18 18:12:14] Global keyboard hook cleaned up

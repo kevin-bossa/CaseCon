@@ -11,6 +11,7 @@ import time
 import traceback
 import datetime
 import ctypes
+import atexit
 
 # Change to script directory to ensure relative imports work
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -58,21 +59,18 @@ def scancode_to_key_name(sc):
     except:
         return f"KEY_{sc}"
 
-# -------------------- Detect scancodes for letters --------------------
 def get_scancode_for_char(target_char):
     user32 = ctypes.WinDLL('user32')
-    layout = user32.GetKeyboardLayout(0)  # Current layout
-
+    layout = user32.GetKeyboardLayout(0)
     MapVirtualKeyEx = user32.MapVirtualKeyExW
     MapVirtualKeyEx.argtypes = [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint]
     MapVirtualKeyEx.restype = ctypes.c_uint
-
     for vk in range(256):
-        keyboard_state = (ctypes.c_ubyte * 256)()  # No modifiers
+        keyboard_state = (ctypes.c_ubyte * 256)()
         char_buffer = ctypes.create_unicode_buffer(2)
         res = user32.ToUnicodeEx(vk, 0, keyboard_state, char_buffer, 2, 0, layout)
         if res > 0 and char_buffer.value.upper() == target_char.upper():
-            sc = MapVirtualKeyEx(vk, 0, layout)  # Get scancode
+            sc = MapVirtualKeyEx(vk, 0, layout)
             return sc
     return None
 
@@ -140,7 +138,7 @@ def create_tray_icon():
 
 def show_window():
     root.deiconify()
-    notebook.select(tab_main)  # Always open Main tab
+    notebook.select(tab_main)
     root.lift()
     root.attributes('-topmost', True)
     root.after(100, lambda: root.attributes('-topmost', False))
@@ -149,7 +147,14 @@ def hide_window():
     root.withdraw()
 
 def quit_app():
-    if tray_icon: tray_icon.stop()
+    global app_running
+    app_running = False
+    complete_shutdown()
+    if tray_icon: 
+        try:
+            tray_icon.stop()
+        except:
+            pass
     root.quit()
     sys.exit()
 
@@ -200,7 +205,7 @@ def on_tab_changed(event):
     if selected_tab == str(tab_tray):
         hide_window()
     elif selected_tab == str(tab_settings):
-        root.focus()  # Remove focus from entries whenever Settings tab is selected
+        root.focus()
 
 notebook.bind("<<NotebookTabChanged>>", on_tab_changed)
 
@@ -210,24 +215,23 @@ settings_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
 
 shortcuts = get_shortcuts()
 
-# -------------------- AUTO-SET DEFAULTS FOR SHORTCUTS --------------------
+# -------------------- DEFAULT SHORTCUTS (only first run) --------------------
 default_letters = {
     "uppercase": "U",
     "lowercase": "L",
     "titlecase": "T",
-    "sentencecase": "C",  # 'C' from "case"
+    "sentencecase": "C",
     "macrocase": "M",
     "snakecase": "S",
     "pascalcase": "P",
     "kebabcase": "K"
 }
 
+# Apply defaults only if shortcut is empty string
 for mode, char in default_letters.items():
-    if shortcuts.get(mode, "").upper() == "NONE":
-        sc = get_scancode_for_char(char)
-        if sc is None:  # fallback to US layout
-            fallback_map = {"U":22, "L":38, "T":20, "C":46, "M":50, "S":31, "P":25, "K":37}
-            sc = fallback_map[char]
+    current_value = shortcuts.get(mode, "")
+    if current_value == "":
+        sc = get_scancode_for_char(char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37}[char]
         default_shortcut = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
         update_shortcut(mode, default_shortcut)
         shortcuts[mode] = default_shortcut
@@ -249,6 +253,39 @@ for mode, default in shortcuts.items():
             e.insert(0, "NONE")
 
     e.grid(row=row, column=1, padx=(10,0), pady=5)
+    
+    # Add small reset button ↺
+    def make_reset_callback(entry=e, m=mode, default_char=default_letters.get(mode, None)):
+        def reset_shortcut():
+            if default_char:
+                sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37}[default_char]
+                default_shortcut = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
+                update_shortcut(m, default_shortcut)
+                entry.delete(0, tk.END)
+                sc_list = [int(sc) for sc in default_shortcut.split('+')]
+                display_parts = [get_key_name(sc) for sc in sc_list]
+                entry.insert(0, '+'.join(display_parts))
+                update_dynamic_shortcut(m, default_shortcut)
+        return reset_shortcut
+    reset_btn = tk.Button(settings_frame, text="↺", width=2, command=make_reset_callback())
+    reset_btn.grid(row=row, column=2, padx=(5,0))
+
+    # Add new Cancel button ✖
+    def make_cancel_callback(entry=e, m=mode):
+        def cancel_shortcut():
+            global current_entry, recording_active
+            if current_entry == entry and recording_active:
+                stop_recording_immediately()
+                stop_recording(entry, "NONE")
+            else:
+                entry.delete(0, tk.END)
+                entry.insert(0, "NONE")
+                update_shortcut(m, "NONE")
+                update_dynamic_shortcut(m, "NONE")
+        return cancel_shortcut
+    cancel_btn = tk.Button(settings_frame, text="✖", width=2, fg="red", command=make_cancel_callback())
+    cancel_btn.grid(row=row, column=3, padx=(5,0))
+    
     entry_widgets[mode] = e
     row += 1
 
@@ -265,93 +302,176 @@ tk.Checkbutton(settings_frame, text="Always hide in system tray", variable=start
 
 root.focus()
 
-# -------------------- Hotkeys Setup --------------------
+# -------------------- SINGLE PERSISTENT HOOK SYSTEM --------------------
+app_running = True
 dynamic_shortcuts = {mode: shortcuts[mode] for mode in shortcuts}
-hotkey_handles = []
+shortcut_lock = threading.Lock()
+recording_active = False
+main_hook_active = False
 
-def register_hotkeys():
-    global hotkey_handles
-    for handle in hotkey_handles:
-        try:
-            keyboard.remove_hotkey(handle)
-        except (KeyError, ValueError):
-            pass
-    hotkey_handles = []
+# Track currently pressed keys manually
+pressed_scancodes = set()
+pressed_lock = threading.Lock()
 
-    for mode, shortcut_sc in dynamic_shortcuts.items():
-        if not shortcut_sc or shortcut_sc.upper() == "NONE":
-            continue
+def update_dynamic_shortcut(mode, shortcut_sc):
+    """Thread-safe shortcut update"""
+    with shortcut_lock:
+        dynamic_shortcuts[mode] = shortcut_sc
+
+def parse_shortcut_combination(shortcut_sc):
+    """Convert shortcut string to scancode list"""
+    if not shortcut_sc or shortcut_sc.upper() == "NONE":
+        return None
+    try:
+        return [int(sc) for sc in shortcut_sc.split('+')]
+    except:
+        return None
+
+def check_key_combination_match(target_combination):
+    """Check if the current pressed keys match the target combination exactly"""
+    if not target_combination:
+        return False
+    
+    with pressed_lock:
+        target_set = set(target_combination)
+        return pressed_scancodes == target_set
+
+def global_key_handler(event):
+    """Single global key handler that tracks key states and checks shortcuts"""
+    global recording_active, pressed_scancodes
+    
+    if not app_running:
+        return
+    
+    # Update our pressed keys tracking
+    with pressed_lock:
+        if event.event_type == keyboard.KEY_DOWN:
+            pressed_scancodes.add(event.scan_code)
+        elif event.event_type == keyboard.KEY_UP:
+            pressed_scancodes.discard(event.scan_code)
+    
+    # Handle recording mode separately
+    if recording_active:
+        handle_recording_key(event)
+        return
+    
+    # Only process key down events for hotkeys
+    if event.event_type != keyboard.KEY_DOWN:
+        return
+    
+    # Check each registered shortcut
+    with shortcut_lock:
+        for mode, shortcut_sc in dynamic_shortcuts.items():
+            target_combination = parse_shortcut_combination(shortcut_sc)
+            if target_combination and check_key_combination_match(target_combination):
+                # Execute the transformation in a separate thread to avoid blocking
+                threading.Thread(
+                    target=execute_transformation, 
+                    args=(mode,), 
+                    daemon=True
+                ).start()
+                break  # Only execute one transformation per key press
+
+def execute_transformation(mode):
+    """Execute text transformation safely"""
+    try:
+        convert_clipboard_text(mode)
+    except Exception as e:
+        log_error(f"Error executing transformation for {mode}: {str(e)}")
+
+def initialize_global_hook():
+    """Initialize the single global keyboard hook"""
+    global main_hook_active
+    if not main_hook_active and app_running:
         try:
-            scancodes = [int(sc) for sc in shortcut_sc.split('+')]
-            handle = keyboard.add_hotkey(scancodes, lambda m=mode: convert_clipboard_text(m), suppress=False)
-            hotkey_handles.append(handle)
+            keyboard.hook(global_key_handler)
+            main_hook_active = True
+            log_error("Global keyboard hook initialized successfully")
         except Exception as e:
-            log_error(f"Failed to register hotkey {shortcut_sc} for {mode}: {str(e)}")
+            log_error(f"Failed to initialize global hook: {str(e)}")
 
-register_hotkeys()
+def cleanup_global_hook():
+    """Clean up the global keyboard hook"""
+    global main_hook_active, pressed_scancodes
+    if main_hook_active:
+        try:
+            keyboard.unhook_all()
+            main_hook_active = False
+            with pressed_lock:
+                pressed_scancodes.clear()
+            log_error("Global keyboard hook cleaned up")
+        except Exception as e:
+            log_error(f"Error cleaning up global hook: {str(e)}")
 
-# -------------------- Shortcut Recording --------------------
+def complete_shutdown():
+    """Complete cleanup on shutdown"""
+    global app_running
+    app_running = False
+    cleanup_global_hook()
+
+# Register cleanup on exit
+atexit.register(complete_shutdown)
+
+# Initialize the global hook
+initialize_global_hook()
+
+# -------------------- RECORDING SYSTEM --------------------
 current_entry = None
 previous_value = ""
 recorded_key_name = None
 
+def handle_recording_key(event):
+    """Handle key events during recording"""
+    global recording_active, recorded_key_name, current_entry, previous_value
+    
+    if not recording_active or not current_entry or event.event_type != keyboard.KEY_DOWN:
+        return
+    
+    key_name = event.name.upper()
+    if key_name == 'MAYUSCULAS':
+        key_name = 'SHIFT'
+    
+    if key_name in ('ESC', 'ENTER'):
+        root.after(10, lambda: stop_recording(current_entry, previous_value))
+        return
+    
+    if len(key_name) == 1 and key_name.isalnum():
+        recorded_key_name = key_name
+        final_sc = str(event.scan_code)
+        shortcut_sc = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{final_sc}"
+        root.after(10, lambda: stop_recording(current_entry, shortcut_sc))
+
+def stop_recording_immediately():
+    """Immediately stop recording"""
+    global recording_active, current_entry
+    recording_active = False
+    current_entry = None
+
 def start_recording(entry):
-    global current_entry, previous_value, recorded_key_name
-    if current_entry:
-        current_entry.delete(0, tk.END)
-        current_entry.insert(0, previous_value)
-        current_entry.config(bg='white', insertontime=600, state='normal')
-        keyboard.unhook_all()
-        current_entry = None
-        recorded_key_name = None
-
-    for handle in hotkey_handles:
-        try:
-            keyboard.remove_hotkey(handle)
-        except (KeyError, ValueError):
-            pass
-    hotkey_handles.clear()
-
+    global current_entry, previous_value, recorded_key_name, recording_active
+    
+    # Stop any existing recording
+    stop_recording_immediately()
+    
+    # Set up new recording
     previous_value = entry.get()
     current_entry = entry
+    recording_active = True
+    recorded_key_name = None
+    
     entry.delete(0, tk.END)
-    entry.insert(0, "PRESS LETTER/NUMBER OR DELETE")
+    entry.insert(0, "PRESS LETTER/NUMBER OR ESC")
     entry.icursor(tk.END)
     entry.config(bg='#e8e8e8', insertontime=0, state='readonly')
 
-    def on_key_event(event):
-        if event.event_type != keyboard.KEY_DOWN:
-            return
-        key_name = event.name.upper()
-        if key_name == 'MAYUSCULAS':
-            key_name = 'SHIFT'
-
-        if key_name == 'DELETE':
-            finish_recording("NONE")
-            return True
-
-        if key_name in ('ESC', 'ENTER'):
-            finish_recording(previous_value)
-            return False
-
-        if len(key_name) == 1 and key_name.isalnum():
-            global recorded_key_name
-            recorded_key_name = key_name
-            final_sc = str(event.scan_code)
-            shortcut_sc = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{final_sc}"
-            finish_recording(shortcut_sc)
-            return False
-
-    def finish_recording(shortcut_sc):
-        keyboard.unhook_all()
-        root.after(10, lambda: stop_recording(entry, shortcut_sc))
-
-    keyboard.hook(on_key_event)
-
 def stop_recording(entry, shortcut_sc):
-    global current_entry, previous_value, recorded_key_name
+    global current_entry, previous_value, recorded_key_name, recording_active
 
+    recording_active = False
+    current_entry = None
+    
     entry.config(state='normal')
+    
     if shortcut_sc.upper() == "NONE":
         display_text = "NONE"
     else:
@@ -366,17 +486,18 @@ def stop_recording(entry, shortcut_sc):
     entry.delete(0, tk.END)
     entry.insert(0, display_text)
     entry.config(bg='white', insertontime=600)
-    current_entry = None
+    
+    # Reset recording state
     previous_value = display_text
     recorded_key_name = None
 
     root.focus()
 
-    mode = next((m for m,e in entry_widgets.items() if e==entry), None)
+    # Update the shortcut
+    mode = next((m for m, e in entry_widgets.items() if e == entry), None)
     if mode:
         update_shortcut(mode, shortcut_sc if shortcut_sc != "NONE" else "NONE")
-        dynamic_shortcuts[mode] = shortcut_sc if shortcut_sc != "NONE" else "NONE"
-        register_hotkeys()
+        update_dynamic_shortcut(mode, shortcut_sc if shortcut_sc != "NONE" else "NONE")
 
 for entry in entry_widgets.values():
     entry.bind("<Button-1>", lambda e, entry=entry: (start_recording(entry), "break"))
@@ -432,15 +553,16 @@ def convert(mode):
 # -------------------- Setup Tray --------------------
 setup_tray()
 
-# Sync startup status
 actual_startup_status = is_in_startup()
 if actual_startup_status != bool(get_setting("start_with_windows")):
     update_setting("start_with_windows", int(actual_startup_status))
     start_with_windows_var.set(int(actual_startup_status))
 
 if get_setting("start_hidden_tray"):
-    root.withdraw()
-else:
-    root.after(50, lambda: root.focus())
+    hide_window()
 
-root.mainloop()
+# -------------------- Run --------------------
+try:
+    root.mainloop()
+finally:
+    complete_shutdown()
