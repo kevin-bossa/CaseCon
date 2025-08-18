@@ -1,0 +1,25 @@
+[2025-08-17 00:47:48] Failed to import textcore: unterminated string literal (detected at line 153) (textcore.py, line 153)
+Traceback (most recent call last):
+  File "C:\Users\Kevin\Documents\VSCode\CaseCon\GUI.py", line 29, in <module>
+    from textcore import transform_text, convert_clipboard_text, get_shortcuts, update_shortcut, get_setting, update_setting
+  File "C:\Users\Kevin\Documents\VSCode\CaseCon\textcore.py", line 153
+    last_transformed = {"text": None, "mode": None"}
+                                                  ^
+SyntaxError: unterminated string literal (detected at line 153)
+
+[2025-08-17 10:50:19] Failed to import textcore: No module named 'win32gui'
+Traceback (most recent call last):
+  File "C:\Users\Kevin\Documents\VSCode\CaseCon\GUI.py", line 30, in <module>
+    import textcore
+  File "C:\Users\Kevin\Documents\VSCode\CaseCon\textcore.py", line 10, in <module>
+    import win32gui
+ModuleNotFoundError: No module named 'win32gui'
+
+[2025-08-17 17:06:50] Failed to import textcore: No module named 'keyboard'
+Traceback (most recent call last):
+  File "C:\Users\Kevin\Documents\VSCode\CaseCon\GUI.py", line 28, in <module>
+    from textcore import transform_text, convert_clipboard_text, get_shortcuts, update_shortcut, get_setting, update_setting, get_win_key_name, update_win_key_name
+  File "C:\Users\Kevin\Documents\VSCode\CaseCon\textcore.py", line 2, in <module>
+    import keyboard
+ModuleNotFoundError: No module named 'keyboard'
+
