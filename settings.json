@@ -1,13 +1,13 @@
 {
     "shortcuts": {
-        "uppercase": "Q+U+I+E",
+        "uppercase": "NONE",
         "lowercase": "NONE",
-        "titlecase": "NONE",
-        "sentencecase": "NONE",
-        "macrocase": "NONE",
-        "snakecase": "NONE",
-        "pascalcase": "NONE",
-        "kebabcase": "NONE"
+        "titlecase": "CTRL+WIN+ALT+T",
+        "sentencecase": "CTRL+WIN+ALT+C",
+        "macrocase": "CTRL+WIN+ALT+M",
+        "snakecase": "CTRL+WIN+ALT+S",
+        "pascalcase": "CTRL+WIN+ALT+P",
+        "kebabcase": "CTRL+WIN+ALT+K"
     },
     "start_with_windows": 0,
     "start_hidden_tray": 0
