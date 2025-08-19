@@ -35,7 +35,7 @@ try:
         update_shortcut,
         get_setting,
         update_setting,
-        count_selected_text,  # NEW import for count functionality
+        count_selected_text,
     )
 except Exception as e:
     error_msg = f"Failed to import textcore: {str(e)}\n{traceback.format_exc()}"
@@ -234,25 +234,26 @@ default_letters = {
     "snakecase": "S",
     "pascalcase": "P",
     "kebabcase": "K",
-    "count": "0"
+    "count": "0",
+    "launch": "J"
 }
 
 # Apply defaults only if shortcut is empty string
 for mode, char in default_letters.items():
     current_value = shortcuts.get(mode, "")
     if current_value == "":
-        sc = get_scancode_for_char(char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37,"0":48}[char]
+        sc = get_scancode_for_char(char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37,"0":48,"J":24}[char]
         default_shortcut = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
         update_shortcut(mode, default_shortcut)
         shortcuts[mode] = default_shortcut
 
 # Add SHORTCUTS title
-tk.Label(settings_frame, text="SHORTCUTS", bg='#f0f0f0', font=("Arial", 12, "bold")).grid(row=0, column=0, columnspan=4, sticky="w", pady=(0,10))
+tk.Label(settings_frame, text="SHORTCUTS", bg='#f0f0f0', font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=4, sticky="w", pady=(0,5))
 
 entry_widgets = {}
 row = 1
 for mode, default in shortcuts.items():
-    tk.Label(settings_frame, text=mode.capitalize() + ":", bg='#f0f0f0').grid(row=row, column=0, sticky="w", pady=5)
+    tk.Label(settings_frame, text=mode.capitalize() + ":", bg='#f0f0f0', font=("Arial", 9)).grid(row=row, column=0, sticky="w", pady=3)
     e = tk.Entry(settings_frame, width=35)
 
     if default.upper() == "NONE":
@@ -265,13 +266,13 @@ for mode, default in shortcuts.items():
         except:
             e.insert(0, "NONE")
 
-    e.grid(row=row, column=1, padx=(10,0), pady=5)
+    e.grid(row=row, column=1, padx=(10,0), pady=3)
     
     # Add small reset button ↺
     def make_reset_callback(entry=e, m=mode, default_char=default_letters.get(mode, None)):
         def reset_shortcut():
             if default_char:
-                sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37,"0":48}[default_char]
+                sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37,"0":48,"J":24}[default_char]
                 default_shortcut = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
                 update_shortcut(m, default_shortcut)
                 entry.delete(0, tk.END)
@@ -307,7 +308,7 @@ def restore_all_shortcuts():
     """Restore all shortcuts to their default values"""
     for mode, default_char in default_letters.items():
         if default_char:
-            sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37,"0":48}[default_char]
+            sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37,"0":48,"J":24}[default_char]
             default_shortcut = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
             
             # Update the shortcut in storage and dynamic shortcuts
@@ -324,17 +325,17 @@ def restore_all_shortcuts():
 
 restore_all_btn = tk.Button(settings_frame, text="Restore All Shortcuts", 
                            command=restore_all_shortcuts)
-restore_all_btn.grid(row=row, column=1, pady=(10,15))
+restore_all_btn.grid(row=row, column=1, pady=(5,10))
 row += 1
 
 # Add STARTUP SETTINGS title
-tk.Label(settings_frame, text="STARTUP SETTINGS", bg='#f0f0f0', font=("Arial", 12, "bold")).grid(row=row, column=0, columnspan=4, sticky="w", pady=(0,5))
+tk.Label(settings_frame, text="STARTUP SETTINGS", bg='#f0f0f0', font=("Arial", 10, "bold")).grid(row=row, column=0, columnspan=4, sticky="w", pady=(0,3))
 row += 1
 
 start_with_windows_var = tk.IntVar(value=get_setting("start_with_windows"))
 tk.Checkbutton(settings_frame, text="Start with Windows", variable=start_with_windows_var,
                command=lambda: add_to_startup() if start_with_windows_var.get() else remove_from_startup(),
-               bg='#f0f0f0').grid(row=row, column=0, columnspan=2, sticky="w", pady=(10,0))
+               bg='#f0f0f0').grid(row=row, column=0, columnspan=2, sticky="w", pady=(5,0))
 row += 1
 
 start_hidden_tray_var = tk.IntVar(value=get_setting("start_hidden_tray"))
@@ -432,39 +433,38 @@ def global_key_handler(event):
                 break  # Only execute one transformation per key press
 
 def execute_transformation(mode):
-    """Execute text transformation safely. If mode == 'count' -> show popup with counts."""
+    """Execute text transformation safely. If mode == 'count' -> show popup with counts. If mode == 'launch' -> show window."""
     global count_popup_active
     try:
         if mode == "count":
-            # NEW: Check if a count popup is already active
             if count_popup_active:
                 return  # Silently ignore if a popup is already open
             try:
                 result = count_selected_text()
-                # Schedule a popup on the main Tk thread
                 def show_count_popup():
                     global count_popup_active
                     try:
-                        count_popup_active = True  # Set flag before showing popup
+                        count_popup_active = True
                         messagebox.showinfo(
                             "Text Count",
                             f"Words: {result['words']} - Letters: {result['letters']} - All characters: {result['all_chars']}",
                             parent=root
                         )
-                        count_popup_active = False  # Clear flag when popup is closed
+                        count_popup_active = False
                     except Exception as e:
-                        count_popup_active = False  # Ensure flag is cleared on error
+                        count_popup_active = False
                         log_error(f"Failed to show count popup: {str(e)}")
                 root.after(0, show_count_popup)
             except Exception as e:
-                count_popup_active = False  # Ensure flag is cleared on error
+                count_popup_active = False
                 log_error(f"Error counting selection: {str(e)}\n{traceback.format_exc()}")
+        elif mode == "launch":
+            root.after(0, show_window)  # Schedule show_window on main thread
         else:
             convert_clipboard_text(mode)
     except Exception as e:
         log_error(f"Error executing transformation for {mode}: {str(e)}")
     finally:
-        # always clear pressed scancodes after conversion to avoid stuck state
         clear_pressed_scancodes()
 
 def initialize_global_hook():

@@ -38,7 +38,7 @@ MODES = {
     "snakecase": TextModes.snake_case,
     "pascalcase": TextModes.pascal_case,
     "kebabcase": TextModes.kebab_case,
-    # NOTE: "count" is intentionally NOT in MODES because it does not transform text.
+    # NOTE: "count" and "launch" are intentionally NOT in MODES because they do not transform text.
 }
 
 
@@ -69,7 +69,6 @@ def get_scancode_for_char(target_char):
 # -------------------- JSON Settings Management --------------------
 def load_json():
     if not os.path.exists(CONFIG_FILE):  # First run defaults
-        # Added "count": "0" default char so the count shortcut is available by default
         default_letters = {
             "uppercase": "U",
             "lowercase": "L",
@@ -79,7 +78,8 @@ def load_json():
             "snakecase": "S",
             "pascalcase": "P",
             "kebabcase": "K",
-            "count": "0"
+            "count": "0",
+            "launch": "J"  # Added
         }
 
         default_shortcuts = {}
@@ -95,7 +95,8 @@ def load_json():
                     "S": 31,
                     "P": 25,
                     "K": 37,
-                    "0": 48
+                    "0": 48,
+                    "J": 24  # Added
                 }[char]
                 sc = fallback_sc
             default_shortcuts[mode] = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
@@ -146,7 +147,7 @@ def update_setting(key, value):
 
 # -------------------- Transform Function --------------------
 def transform_text(text, mode):
-    # More robust: if mode unknown (for example "count"), return original text unchanged.
+    # More robust: if mode unknown (for example "count" or "launch"), return original text unchanged.
     func = MODES.get(mode)
     if func:
         return func(text)
