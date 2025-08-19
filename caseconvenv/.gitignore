@@ -1,0 +1,35 @@
+# Python cache files
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+*.pyvenv.cfg
+
+# Log files
+*.log
+
+# IDE and editor files
+*.sublime-project
+*.sublime-workspace
+*.vscode/
+*.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+
+# Python eggs
+*.egg
+*.egg-info/
+
+# Local settings
+settings.json
+
+# Ignore specific files from the directory
+casecon.error.log
+GUIL.py
