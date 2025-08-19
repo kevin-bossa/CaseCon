@@ -838,3 +838,18 @@ ModuleNotFoundError: No module named 'keyboard'
 [2025-08-18 18:11:35] Global keyboard hook initialized successfully
 [2025-08-18 18:12:11] Error executing transformation for lowercase: Could not read the selected text. Make sure Ctrl+C works.
 [2025-08-18 18:12:14] Global keyboard hook cleaned up
+[2025-08-19 08:45:18] Global keyboard hook initialized successfully
+[2025-08-19 08:45:50] Global keyboard hook cleaned up
+[2025-08-19 08:47:58] Global keyboard hook initialized successfully
+[2025-08-19 08:48:52] Global keyboard hook cleaned up
+[2025-08-19 08:52:06] Global keyboard hook initialized successfully
+[2025-08-19 08:55:19] Global keyboard hook cleaned up
+[2025-08-19 08:57:06] Global keyboard hook initialized successfully
+[2025-08-19 08:57:25] Global keyboard hook cleaned up
+[2025-08-19 08:57:30] Global keyboard hook initialized successfully
+[2025-08-19 08:57:48] Global keyboard hook cleaned up
+[2025-08-19 08:57:52] Global keyboard hook initialized successfully
+[2025-08-19 08:57:54] Global keyboard hook cleaned up
+[2025-08-19 08:58:16] Global keyboard hook initialized successfully
+[2025-08-19 08:58:32] Error converting scancodes to display text: invalid literal for int() with base 10: 'CTRL'
+[2025-08-19 08:58:35] Global keyboard hook cleaned up

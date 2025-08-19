@@ -313,6 +313,10 @@ main_hook_active = False
 pressed_scancodes = set()
 pressed_lock = threading.Lock()
 
+# small cooldown to prevent repeated triggers while holding the keys
+last_trigger_time = 0.0
+TRIGGER_COOLDOWN = 0.35  # seconds
+
 def update_dynamic_shortcut(mode, shortcut_sc):
     """Thread-safe shortcut update"""
     with shortcut_lock:
@@ -327,23 +331,28 @@ def parse_shortcut_combination(shortcut_sc):
     except:
         return None
 
+def clear_pressed_scancodes():
+    """Clear pressed scancodes safely (used to recover from missed KEY_UP events)."""
+    with pressed_lock:
+        pressed_scancodes.clear()
+
 def check_key_combination_match(target_combination):
-    """Check if the current pressed keys match the target combination exactly"""
+    """Check if the current pressed keys contain the target combination (subset check)."""
     if not target_combination:
         return False
-    
     with pressed_lock:
         target_set = set(target_combination)
-        return pressed_scancodes == target_set
+        # use subset instead of strict equality to be tolerant of timing / extra keys
+        return target_set.issubset(pressed_scancodes)
 
 def global_key_handler(event):
     """Single global key handler that tracks key states and checks shortcuts"""
-    global recording_active, pressed_scancodes
+    global recording_active, pressed_scancodes, last_trigger_time
     
     if not app_running:
         return
     
-    # Update our pressed keys tracking
+    # Update our pressed keys tracking (always update — do not ignore user presses)
     with pressed_lock:
         if event.event_type == keyboard.KEY_DOWN:
             pressed_scancodes.add(event.scan_code)
@@ -364,12 +373,19 @@ def global_key_handler(event):
         for mode, shortcut_sc in dynamic_shortcuts.items():
             target_combination = parse_shortcut_combination(shortcut_sc)
             if target_combination and check_key_combination_match(target_combination):
-                # Execute the transformation in a separate thread to avoid blocking
+                now = time.time()
+                if now - last_trigger_time < TRIGGER_COOLDOWN:
+                    # still in cooldown, ignore repeated triggers from holding the keys
+                    return
+                last_trigger_time = now
+                # Start conversion in a separate thread (non-blocking)
                 threading.Thread(
                     target=execute_transformation, 
                     args=(mode,), 
                     daemon=True
                 ).start()
+                # Schedule a quick cleanup in case some KEY_UP events were missed
+                threading.Timer(0.25, clear_pressed_scancodes).start()
                 break  # Only execute one transformation per key press
 
 def execute_transformation(mode):
@@ -378,6 +394,9 @@ def execute_transformation(mode):
         convert_clipboard_text(mode)
     except Exception as e:
         log_error(f"Error executing transformation for {mode}: {str(e)}")
+    finally:
+        # always clear pressed scancodes after conversion to avoid stuck state
+        clear_pressed_scancodes()
 
 def initialize_global_hook():
     """Initialize the single global keyboard hook"""

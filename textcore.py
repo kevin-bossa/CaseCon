@@ -149,38 +149,32 @@ def transform_text(text, mode):
 last_transformed = {"text": None, "mode": None}
 
 
-def convert_clipboard_text(mode, retries=10, delay=0.3):
+def convert_clipboard_text(mode, retries=10):
     global last_transformed
 
     old_clipboard = pyperclip.paste()
     new_text = None
 
+    # Try to grab fresh clipboard content
     for attempt in range(retries):
-        try:
-            keyboard.press_and_release('ctrl+c')
-            time.sleep(delay)
+        keyboard.press_and_release('ctrl+c')
+        for _ in range(10):  # up to 0.5s total
+            time.sleep(0.05)
             candidate = pyperclip.paste()
             if candidate and candidate != old_clipboard:
                 new_text = candidate
                 break
-        except Exception as e:
-            print(f"Error during Ctrl+C attempt {attempt + 1}: {e}")
+        if new_text:
+            break
     else:
         raise RuntimeError("Could not read the selected text. Make sure Ctrl+C works.")
 
-    # Only skip if both text and mode are the same as the last transformation
-    if (last_transformed["text"]
-            and new_text.casefold() == last_transformed["text"].casefold()
-            and last_transformed["mode"] == mode):
-        return
+    # Always re-transform (remove aggressive skipping)
+    transformed = transform_text(new_text, mode)
+    last_transformed["text"] = new_text
+    last_transformed["mode"] = mode
 
-    try:
-        transformed = transform_text(new_text, mode)
-        last_transformed["text"] = new_text
-        last_transformed["mode"] = mode
-        pyperclip.copy(transformed)
-        keyboard.press_and_release('ctrl+v')
-        time.sleep(0.1)
-        pyperclip.copy(old_clipboard)
-    except Exception as e:
-        print(f"Error during transformation or paste: {e}")
+    pyperclip.copy(transformed)
+    keyboard.press_and_release('ctrl+v')
+    time.sleep(0.2)  # allow paste to finish
+    pyperclip.copy(old_clipboard)
