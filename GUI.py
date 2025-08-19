@@ -12,6 +12,7 @@ import traceback
 import datetime
 import ctypes
 import atexit
+from tkinter import messagebox  # used for popups
 
 # Change to script directory to ensure relative imports work
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -20,14 +21,22 @@ os.chdir(script_dir)
 # Add error logging for startup debugging
 def log_error(error_msg):
     try:
-        with open("casecon_error.log", "a") as f:
+        with open("casecon_error.log", "a", encoding="utf-8") as f:
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             f.write(f"[{timestamp}] {error_msg}\n")
     except:
         pass
 
 try:
-    from textcore import transform_text, convert_clipboard_text, get_shortcuts, update_shortcut, get_setting, update_setting
+    from textcore import (
+        transform_text,
+        convert_clipboard_text,
+        get_shortcuts,
+        update_shortcut,
+        get_setting,
+        update_setting,
+        count_selected_text,  # NEW import for count functionality
+    )
 except Exception as e:
     error_msg = f"Failed to import textcore: {str(e)}\n{traceback.format_exc()}"
     log_error(error_msg)
@@ -150,7 +159,7 @@ def quit_app():
     global app_running
     app_running = False
     complete_shutdown()
-    if tray_icon: 
+    if tray_icon:
         try:
             tray_icon.stop()
         except:
@@ -224,14 +233,15 @@ default_letters = {
     "macrocase": "M",
     "snakecase": "S",
     "pascalcase": "P",
-    "kebabcase": "K"
+    "kebabcase": "K",
+    "count": "0"
 }
 
 # Apply defaults only if shortcut is empty string
 for mode, char in default_letters.items():
     current_value = shortcuts.get(mode, "")
     if current_value == "":
-        sc = get_scancode_for_char(char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37}[char]
+        sc = get_scancode_for_char(char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37,"0":48}[char]
         default_shortcut = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
         update_shortcut(mode, default_shortcut)
         shortcuts[mode] = default_shortcut
@@ -261,7 +271,7 @@ for mode, default in shortcuts.items():
     def make_reset_callback(entry=e, m=mode, default_char=default_letters.get(mode, None)):
         def reset_shortcut():
             if default_char:
-                sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37}[default_char]
+                sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37,"0":48}[default_char]
                 default_shortcut = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
                 update_shortcut(m, default_shortcut)
                 entry.delete(0, tk.END)
@@ -297,7 +307,7 @@ def restore_all_shortcuts():
     """Restore all shortcuts to their default values"""
     for mode, default_char in default_letters.items():
         if default_char:
-            sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37}[default_char]
+            sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37,"0":48}[default_char]
             default_shortcut = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
             
             # Update the shortcut in storage and dynamic shortcuts
@@ -340,6 +350,7 @@ dynamic_shortcuts = {mode: shortcuts[mode] for mode in shortcuts}
 shortcut_lock = threading.Lock()
 recording_active = False
 main_hook_active = False
+count_popup_active = False  # NEW: Flag to track if count popup is active
 
 # Track currently pressed keys manually
 pressed_scancodes = set()
@@ -421,9 +432,35 @@ def global_key_handler(event):
                 break  # Only execute one transformation per key press
 
 def execute_transformation(mode):
-    """Execute text transformation safely"""
+    """Execute text transformation safely. If mode == 'count' -> show popup with counts."""
+    global count_popup_active
     try:
-        convert_clipboard_text(mode)
+        if mode == "count":
+            # NEW: Check if a count popup is already active
+            if count_popup_active:
+                return  # Silently ignore if a popup is already open
+            try:
+                result = count_selected_text()
+                # Schedule a popup on the main Tk thread
+                def show_count_popup():
+                    global count_popup_active
+                    try:
+                        count_popup_active = True  # Set flag before showing popup
+                        messagebox.showinfo(
+                            "Text Count",
+                            f"Words: {result['words']} - Letters: {result['letters']} - All characters: {result['all_chars']}",
+                            parent=root
+                        )
+                        count_popup_active = False  # Clear flag when popup is closed
+                    except Exception as e:
+                        count_popup_active = False  # Ensure flag is cleared on error
+                        log_error(f"Failed to show count popup: {str(e)}")
+                root.after(0, show_count_popup)
+            except Exception as e:
+                count_popup_active = False  # Ensure flag is cleared on error
+                log_error(f"Error counting selection: {str(e)}\n{traceback.format_exc()}")
+        else:
+            convert_clipboard_text(mode)
     except Exception as e:
         log_error(f"Error executing transformation for {mode}: {str(e)}")
     finally:

@@ -38,6 +38,7 @@ MODES = {
     "snakecase": TextModes.snake_case,
     "pascalcase": TextModes.pascal_case,
     "kebabcase": TextModes.kebab_case,
+    # NOTE: "count" is intentionally NOT in MODES because it does not transform text.
 }
 
 
@@ -68,6 +69,7 @@ def get_scancode_for_char(target_char):
 # -------------------- JSON Settings Management --------------------
 def load_json():
     if not os.path.exists(CONFIG_FILE):  # First run defaults
+        # Added "count": "0" default char so the count shortcut is available by default
         default_letters = {
             "uppercase": "U",
             "lowercase": "L",
@@ -76,7 +78,8 @@ def load_json():
             "macrocase": "M",
             "snakecase": "S",
             "pascalcase": "P",
-            "kebabcase": "K"
+            "kebabcase": "K",
+            "count": "0"
         }
 
         default_shortcuts = {}
@@ -91,7 +94,8 @@ def load_json():
                     "M": 50,
                     "S": 31,
                     "P": 25,
-                    "K": 37
+                    "K": 37,
+                    "0": 48
                 }[char]
                 sc = fallback_sc
             default_shortcuts[mode] = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
@@ -102,17 +106,17 @@ def load_json():
             "start_hidden_tray": 0
         }
 
-        with open(CONFIG_FILE, "w") as f:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(default_settings, f, indent=4)
 
         return default_settings
     else:
-        with open(CONFIG_FILE, "r") as f:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
 
 
 def save_json(data):
-    with open(CONFIG_FILE, "w") as f:
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4)
 
 
@@ -142,7 +146,11 @@ def update_setting(key, value):
 
 # -------------------- Transform Function --------------------
 def transform_text(text, mode):
-    return MODES[mode](text)
+    # More robust: if mode unknown (for example "count"), return original text unchanged.
+    func = MODES.get(mode)
+    if func:
+        return func(text)
+    return text
 
 
 # -------------------- Clipboard Conversion --------------------
@@ -178,3 +186,49 @@ def convert_clipboard_text(mode, retries=10):
     keyboard.press_and_release('ctrl+v')
     time.sleep(0.2)  # allow paste to finish
     pyperclip.copy(old_clipboard)
+
+
+# -------------------- NEW: Count (read selection and compute counts) --------------------
+def count_selected_text(retries=10):
+    """
+    Copies the currently selected text (presses Ctrl+C similarly to convert_clipboard_text),
+    returns a dict with 'text', 'words', 'letters', 'all_chars'.
+    Restores the previous clipboard contents after reading.
+    This function does not paste anything back.
+    """
+    old_clipboard = pyperclip.paste()
+    new_text = None
+
+    for attempt in range(retries):
+        keyboard.press_and_release('ctrl+c')
+        for _ in range(10):  # up to 0.5s
+            time.sleep(0.05)
+            candidate = pyperclip.paste()
+            # accept a candidate even if equal to old_clipboard (selected text may be same)
+            if candidate is not None and candidate != "":
+                # If it changed AND is not empty, take it
+                if candidate != old_clipboard:
+                    new_text = candidate
+                    break
+                # If it didn't change but not empty, maybe the selection equals clipboard already
+                elif attempt == retries - 1:
+                    new_text = candidate
+                    break
+        if new_text:
+            break
+
+    # Fallback: if nothing new, use old_clipboard (last-known text)
+    if new_text is None:
+        new_text = old_clipboard or ""
+
+    words = len(new_text.split())
+    letters = sum(1 for c in new_text if c.isalpha())
+    all_chars = len(new_text)
+
+    # restore previous clipboard so we don't disturb user's clipboard
+    try:
+        pyperclip.copy(old_clipboard)
+    except Exception:
+        pass
+
+    return {"text": new_text, "words": words, "letters": letters, "all_chars": all_chars}
