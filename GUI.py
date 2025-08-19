@@ -229,20 +229,20 @@ default_letters = {
     "uppercase": "U",
     "lowercase": "L",
     "titlecase": "T",
-    "sentencecase": "C",
+    "sentencecase": "Z",  # Changed to Z
     "macrocase": "M",
     "snakecase": "S",
     "pascalcase": "P",
     "kebabcase": "K",
-    "count": "0",
-    "launch": "J"
+    "count": "C",  # Changed to C
+    "launch": "V"  # Changed to V
 }
 
 # Apply defaults only if shortcut is empty string
 for mode, char in default_letters.items():
     current_value = shortcuts.get(mode, "")
     if current_value == "":
-        sc = get_scancode_for_char(char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37,"0":48,"J":24}[char]
+        sc = get_scancode_for_char(char) or {"U":22,"L":38,"T":20,"Z":44,"M":50,"S":31,"P":25,"K":37,"C":46,"V":47}[char]
         default_shortcut = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
         update_shortcut(mode, default_shortcut)
         shortcuts[mode] = default_shortcut
@@ -272,7 +272,7 @@ for mode, default in shortcuts.items():
     def make_reset_callback(entry=e, m=mode, default_char=default_letters.get(mode, None)):
         def reset_shortcut():
             if default_char:
-                sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37,"0":48,"J":24}[default_char]
+                sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"Z":44,"M":50,"S":31,"P":25,"K":37,"C":46,"V":47}[default_char]
                 default_shortcut = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
                 update_shortcut(m, default_shortcut)
                 entry.delete(0, tk.END)
@@ -308,7 +308,7 @@ def restore_all_shortcuts():
     """Restore all shortcuts to their default values"""
     for mode, default_char in default_letters.items():
         if default_char:
-            sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37,"0":48,"J":24}[default_char]
+            sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"Z":44,"M":50,"S":31,"P":25,"K":37,"C":46,"V":47}[default_char]
             default_shortcut = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
             
             # Update the shortcut in storage and dynamic shortcuts
@@ -459,7 +459,8 @@ def execute_transformation(mode):
                 count_popup_active = False
                 log_error(f"Error counting selection: {str(e)}\n{traceback.format_exc()}")
         elif mode == "launch":
-            root.after(0, show_window)  # Schedule show_window on main thread
+            if root.state() == 'withdrawn':  # Only show window if it's currently hidden
+                root.after(0, show_window)  # Schedule show_window on main thread
         else:
             convert_clipboard_text(mode)
     except Exception as e:

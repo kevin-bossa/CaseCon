@@ -73,13 +73,13 @@ def load_json():
             "uppercase": "U",
             "lowercase": "L",
             "titlecase": "T",
-            "sentencecase": "C",
+            "sentencecase": "Z",  # Changed to Z
             "macrocase": "M",
             "snakecase": "S",
             "pascalcase": "P",
             "kebabcase": "K",
-            "count": "0",
-            "launch": "J"  # Added
+            "count": "C",  # Changed to C
+            "launch": "V"  # Changed to V
         }
 
         default_shortcuts = {}
@@ -90,13 +90,13 @@ def load_json():
                     "U": 22,
                     "L": 38,
                     "T": 20,
-                    "C": 46,
+                    "Z": 44,  # Changed to Z
                     "M": 50,
                     "S": 31,
                     "P": 25,
                     "K": 37,
-                    "0": 48,
-                    "J": 24  # Added
+                    "C": 46,  # Changed to C
+                    "V": 47   # Changed to V
                 }[char]
                 sc = fallback_sc
             default_shortcuts[mode] = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"

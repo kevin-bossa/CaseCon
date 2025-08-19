@@ -3,13 +3,13 @@
         "uppercase": "29+91+56+22",
         "lowercase": "29+91+56+38",
         "titlecase": "29+91+56+20",
-        "sentencecase": "29+91+56+46",
+        "sentencecase": "29+91+56+44",
         "macrocase": "29+91+56+50",
         "snakecase": "29+91+56+31",
         "pascalcase": "29+91+56+25",
         "kebabcase": "29+91+56+37",
-        "count": "29+91+56+11",
-        "launch": "29+91+56+36"
+        "count": "29+91+56+46",
+        "launch": "29+91+56+47"
     },
     "start_with_windows": 0,
     "start_hidden_tray": 0
