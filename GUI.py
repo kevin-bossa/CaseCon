@@ -236,8 +236,11 @@ for mode, char in default_letters.items():
         update_shortcut(mode, default_shortcut)
         shortcuts[mode] = default_shortcut
 
+# Add SHORTCUTS title
+tk.Label(settings_frame, text="SHORTCUTS", bg='#f0f0f0', font=("Arial", 12, "bold")).grid(row=0, column=0, columnspan=4, sticky="w", pady=(0,10))
+
 entry_widgets = {}
-row = 0
+row = 1
 for mode, default in shortcuts.items():
     tk.Label(settings_frame, text=mode.capitalize() + ":", bg='#f0f0f0').grid(row=row, column=0, sticky="w", pady=5)
     e = tk.Entry(settings_frame, width=35)
@@ -288,6 +291,35 @@ for mode, default in shortcuts.items():
     
     entry_widgets[mode] = e
     row += 1
+
+# Add "Restore All Shortcuts" button
+def restore_all_shortcuts():
+    """Restore all shortcuts to their default values"""
+    for mode, default_char in default_letters.items():
+        if default_char:
+            sc = get_scancode_for_char(default_char) or {"U":22,"L":38,"T":20,"C":46,"M":50,"S":31,"P":25,"K":37}[default_char]
+            default_shortcut = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{sc}"
+            
+            # Update the shortcut in storage and dynamic shortcuts
+            update_shortcut(mode, default_shortcut)
+            update_dynamic_shortcut(mode, default_shortcut)
+            
+            # Update the display in the entry field
+            if mode in entry_widgets:
+                entry = entry_widgets[mode]
+                entry.delete(0, tk.END)
+                sc_list = [int(sc) for sc in default_shortcut.split('+')]
+                display_parts = [get_key_name(sc) for sc in sc_list]
+                entry.insert(0, '+'.join(display_parts))
+
+restore_all_btn = tk.Button(settings_frame, text="Restore All Shortcuts", 
+                           command=restore_all_shortcuts)
+restore_all_btn.grid(row=row, column=1, pady=(10,15))
+row += 1
+
+# Add STARTUP SETTINGS title
+tk.Label(settings_frame, text="STARTUP SETTINGS", bg='#f0f0f0', font=("Arial", 12, "bold")).grid(row=row, column=0, columnspan=4, sticky="w", pady=(0,5))
+row += 1
 
 start_with_windows_var = tk.IntVar(value=get_setting("start_with_windows"))
 tk.Checkbutton(settings_frame, text="Start with Windows", variable=start_with_windows_var,
@@ -437,11 +469,12 @@ initialize_global_hook()
 # -------------------- RECORDING SYSTEM --------------------
 current_entry = None
 previous_value = ""
+previous_shortcut_sc = ""  # NEW: Store the original shortcut scancode format
 recorded_key_name = None
 
 def handle_recording_key(event):
     """Handle key events during recording"""
-    global recording_active, recorded_key_name, current_entry, previous_value
+    global recording_active, recorded_key_name, current_entry, previous_shortcut_sc
     
     if not recording_active or not current_entry or event.event_type != keyboard.KEY_DOWN:
         return
@@ -451,10 +484,12 @@ def handle_recording_key(event):
         key_name = 'SHIFT'
     
     if key_name in ('ESC', 'ENTER'):
-        root.after(10, lambda: stop_recording(current_entry, previous_value))
+        # FIXED: Use previous_shortcut_sc instead of previous_value to preserve original shortcut
+        root.after(10, lambda: stop_recording(current_entry, previous_shortcut_sc))
         return
     
-    if len(key_name) == 1 and key_name.isalnum():
+    # Accept letters, numbers, and function keys (F1-F24)
+    if (len(key_name) == 1 and key_name.isalnum()) or (key_name.startswith('F') and key_name[1:].isdigit()):
         recorded_key_name = key_name
         final_sc = str(event.scan_code)
         shortcut_sc = f"{CTRL_SC}+{WIN_SC}+{ALT_SC}+{final_sc}"
@@ -467,30 +502,85 @@ def stop_recording_immediately():
     current_entry = None
 
 def start_recording(entry):
-    global current_entry, previous_value, recorded_key_name, recording_active
+    global current_entry, previous_value, previous_shortcut_sc, recorded_key_name, recording_active
     
     # Stop any existing recording
     stop_recording_immediately()
     
-    # Set up new recording
+    # FIXED: Store both display value and original shortcut scancode format
     previous_value = entry.get()
+    
+    # Find the mode for this entry and get the original shortcut scancode format
+    mode = next((m for m, e in entry_widgets.items() if e == entry), None)
+    if mode:
+        previous_shortcut_sc = dynamic_shortcuts.get(mode, "NONE")
+    else:
+        previous_shortcut_sc = "NONE"
+    
+    # Set up new recording
     current_entry = entry
     recording_active = True
     recorded_key_name = None
     
     entry.delete(0, tk.END)
-    entry.insert(0, "PRESS LETTER/NUMBER OR ESC")
+    entry.insert(0, "PRESS LETTER/NUMBER/FUNCTION KEY")
     entry.icursor(tk.END)
     entry.config(bg='#e8e8e8', insertontime=0, state='readonly')
 
 def stop_recording(entry, shortcut_sc):
-    global current_entry, previous_value, recorded_key_name, recording_active
+    global current_entry, previous_value, previous_shortcut_sc, recorded_key_name, recording_active
 
     recording_active = False
     current_entry = None
     
     entry.config(state='normal')
     
+    # Find the mode for this entry
+    mode = next((m for m, e in entry_widgets.items() if e == entry), None)
+    
+    # Check for duplicate shortcuts (only if it's not NONE and not the same as previous)
+    if shortcut_sc.upper() != "NONE" and shortcut_sc != previous_shortcut_sc:
+        # Check if this shortcut is already used by another mode
+        for other_mode, other_shortcut in dynamic_shortcuts.items():
+            if other_mode != mode and other_shortcut == shortcut_sc:
+                # Found duplicate! Show popup and revert
+                from tkinter import messagebox
+                try:
+                    sc_list = [int(sc) for sc in shortcut_sc.split('+')]
+                    display_parts = [get_key_name(sc) if sc in (CTRL_SC, WIN_SC, ALT_SC) or not recorded_key_name else recorded_key_name for sc in sc_list]
+                    shortcut_display = '+'.join(display_parts)
+                except:
+                    shortcut_display = "this shortcut"
+                
+                messagebox.showwarning(
+                    "Duplicate Shortcut", 
+                    f"The shortcut '{shortcut_display}' is already assigned to {other_mode.capitalize()}.\n\nPlease choose a different key."
+                )
+                
+                # Revert to previous shortcut and display it
+                if previous_shortcut_sc.upper() == "NONE":
+                    display_text = "NONE"
+                else:
+                    try:
+                        sc_list = [int(sc) for sc in previous_shortcut_sc.split('+')]
+                        display_parts = [get_key_name(sc) for sc in sc_list]
+                        display_text = '+'.join(display_parts)
+                    except:
+                        display_text = "NONE"
+                
+                entry.delete(0, tk.END)
+                entry.insert(0, display_text)
+                entry.config(bg='white', insertontime=600)
+                
+                # Reset recording state
+                previous_value = display_text
+                recorded_key_name = None
+                root.focus()
+                
+                # IMPORTANT: Return here to prevent saving the duplicate shortcut
+                return
+    
+    # If we get here, it's not a duplicate, so proceed with saving
     if shortcut_sc.upper() == "NONE":
         display_text = "NONE"
     else:
@@ -508,12 +598,12 @@ def stop_recording(entry, shortcut_sc):
     
     # Reset recording state
     previous_value = display_text
+    previous_shortcut_sc = shortcut_sc  # Update the stored shortcut scancode
     recorded_key_name = None
 
     root.focus()
 
     # Update the shortcut
-    mode = next((m for m, e in entry_widgets.items() if e == entry), None)
     if mode:
         update_shortcut(mode, shortcut_sc if shortcut_sc != "NONE" else "NONE")
         update_dynamic_shortcut(mode, shortcut_sc if shortcut_sc != "NONE" else "NONE")

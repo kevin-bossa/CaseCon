@@ -853,3 +853,70 @@ ModuleNotFoundError: No module named 'keyboard'
 [2025-08-19 08:58:16] Global keyboard hook initialized successfully
 [2025-08-19 08:58:32] Error converting scancodes to display text: invalid literal for int() with base 10: 'CTRL'
 [2025-08-19 08:58:35] Global keyboard hook cleaned up
+[2025-08-19 09:09:42] Global keyboard hook initialized successfully
+[2025-08-19 09:10:21] Global keyboard hook cleaned up
+[2025-08-19 14:55:11] Global keyboard hook initialized successfully
+[2025-08-19 14:55:52] Error converting scancodes to display text: invalid literal for int() with base 10: 'CTRL'
+[2025-08-19 14:56:06] Error converting scancodes to display text: invalid literal for int() with base 10: 'CTRL'
+[2025-08-19 14:56:12] Error converting scancodes to display text: invalid literal for int() with base 10: 'CTRL'
+[2025-08-19 14:56:33] Error converting scancodes to display text: invalid literal for int() with base 10: 'CTRL'
+[2025-08-19 14:56:47] Error converting scancodes to display text: invalid literal for int() with base 10: 'CTRL'
+[2025-08-19 14:57:01] Error converting scancodes to display text: invalid literal for int() with base 10: 'CTRL'
+[2025-08-19 14:57:03] Global keyboard hook cleaned up
+[2025-08-19 15:02:17] Global keyboard hook initialized successfully
+[2025-08-19 15:02:52] Global keyboard hook cleaned up
+[2025-08-19 15:04:33] Global keyboard hook initialized successfully
+[2025-08-19 15:05:57] Global keyboard hook cleaned up
+[2025-08-19 15:06:06] Global keyboard hook initialized successfully
+[2025-08-19 15:07:04] Global keyboard hook cleaned up
+[2025-08-19 15:08:42] Global keyboard hook initialized successfully
+[2025-08-19 15:09:02] Global keyboard hook cleaned up
+[2025-08-19 15:09:05] Global keyboard hook initialized successfully
+[2025-08-19 15:09:07] Global keyboard hook cleaned up
+[2025-08-19 15:10:31] Global keyboard hook initialized successfully
+[2025-08-19 15:10:46] Global keyboard hook cleaned up
+[2025-08-19 15:11:59] Global keyboard hook initialized successfully
+[2025-08-19 15:13:17] Global keyboard hook cleaned up
+[2025-08-19 15:14:35] Global keyboard hook initialized successfully
+[2025-08-19 15:15:26] Global keyboard hook cleaned up
+[2025-08-19 15:17:14] Global keyboard hook initialized successfully
+[2025-08-19 15:19:41] Global keyboard hook cleaned up
+[2025-08-19 15:19:48] Global keyboard hook initialized successfully
+[2025-08-19 15:19:58] Global keyboard hook cleaned up
+[2025-08-19 15:20:30] Global keyboard hook initialized successfully
+[2025-08-19 15:21:29] Global keyboard hook cleaned up
+[2025-08-19 15:21:49] Global keyboard hook initialized successfully
+[2025-08-19 15:24:29] Global keyboard hook cleaned up
+[2025-08-19 15:24:50] Global keyboard hook initialized successfully
+[2025-08-19 15:25:07] Global keyboard hook cleaned up
+[2025-08-19 15:28:14] Global keyboard hook initialized successfully
+[2025-08-19 15:29:39] Global keyboard hook cleaned up
+[2025-08-19 15:30:43] Global keyboard hook initialized successfully
+[2025-08-19 15:31:04] Global keyboard hook cleaned up
+[2025-08-19 15:31:31] Global keyboard hook initialized successfully
+[2025-08-19 15:31:37] Global keyboard hook cleaned up
+[2025-08-19 15:31:42] Global keyboard hook initialized successfully
+[2025-08-19 15:31:44] Global keyboard hook cleaned up
+[2025-08-19 15:32:01] Global keyboard hook initialized successfully
+[2025-08-19 15:32:07] Global keyboard hook cleaned up
+[2025-08-19 15:32:21] Global keyboard hook initialized successfully
+[2025-08-19 15:32:24] Global keyboard hook cleaned up
+[2025-08-19 15:32:29] Global keyboard hook initialized successfully
+[2025-08-19 15:32:33] Global keyboard hook cleaned up
+[2025-08-19 15:32:39] Global keyboard hook initialized successfully
+[2025-08-19 15:32:41] Global keyboard hook cleaned up
+[2025-08-19 15:35:30] Global keyboard hook initialized successfully
+[2025-08-19 15:35:35] Global keyboard hook cleaned up
+[2025-08-19 15:35:55] Global keyboard hook initialized successfully
+[2025-08-19 15:35:57] Global keyboard hook cleaned up
+[2025-08-19 15:36:11] Global keyboard hook initialized successfully
+[2025-08-19 15:36:14] Global keyboard hook cleaned up
+[2025-08-19 15:37:05] Global keyboard hook initialized successfully
+[2025-08-19 15:38:46] Global keyboard hook cleaned up
+[2025-08-19 15:39:11] Global keyboard hook initialized successfully
+[2025-08-19 15:40:51] Global keyboard hook cleaned up
+[2025-08-19 15:40:57] Global keyboard hook initialized successfully
+[2025-08-19 15:42:20] Error executing transformation for uppercase: Could not read the selected text. Make sure Ctrl+C works.
+[2025-08-19 15:44:18] Error executing transformation for lowercase: Could not read the selected text. Make sure Ctrl+C works.
+[2025-08-19 15:44:35] Error executing transformation for lowercase: Could not read the selected text. Make sure Ctrl+C works.
+[2025-08-19 15:44:46] Global keyboard hook cleaned up
