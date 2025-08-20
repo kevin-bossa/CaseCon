@@ -184,7 +184,7 @@ tray_icon = None
 # -------------------- Main Window --------------------
 root = tk.Tk()
 root.title("CaseCon")
-root.geometry("460x500")
+root.geometry("480x520")  # Increased width and height to accommodate better spacing
 root.resizable(False, False)
 
 try:
@@ -198,7 +198,7 @@ root.protocol("WM_DELETE_WINDOW", lambda: hide_window() if get_setting("start_hi
 
 # -------------------- Notebook --------------------
 notebook = ttk.Notebook(root)
-notebook.grid(row=0, column=0, columnspan=4, sticky="nsew")
+notebook.grid(row=0, column=0, columnspan=4, sticky="nsew", padx=5, pady=5)  # Added padding around notebook
 
 tab_main = tk.Frame(notebook, bg='#f0f0f0')
 notebook.add(tab_main, text="Main")
@@ -268,7 +268,7 @@ for mode, default in shortcuts.items():
 
     e.grid(row=row, column=1, padx=(10,0), pady=3)
     
-    # Add small reset button ↺
+    # Add small reset button ↻
     def make_reset_callback(entry=e, m=mode, default_char=default_letters.get(mode, None)):
         def reset_shortcut():
             if default_char:
@@ -281,7 +281,7 @@ for mode, default in shortcuts.items():
                 entry.insert(0, '+'.join(display_parts))
                 update_dynamic_shortcut(m, default_shortcut)
         return reset_shortcut
-    reset_btn = tk.Button(settings_frame, text="↺", width=2, command=make_reset_callback())
+    reset_btn = tk.Button(settings_frame, text="↻", width=2, command=make_reset_callback())
     reset_btn.grid(row=row, column=2, padx=(5,0))
 
     # Add new Cancel button ✖
@@ -396,7 +396,7 @@ def global_key_handler(event):
     if not app_running:
         return
     
-    # Update our pressed keys tracking (always update — do not ignore user presses)
+    # Update our pressed keys tracking (always update – do not ignore user presses)
     with pressed_lock:
         if event.event_type == keyboard.KEY_DOWN:
             pressed_scancodes.add(event.scan_code)
@@ -652,7 +652,7 @@ for entry in entry_widgets.values():
 
 # -------------------- Main Tab --------------------
 main_frame = tk.Frame(tab_main, bg='#f0f0f0')
-main_frame.grid(row=0, column=0, sticky="nsew")
+main_frame.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)  # Added consistent padding
 
 buttons = [
     ("UPPERCASE", "uppercase"),
@@ -670,32 +670,252 @@ for idx, (text, mode) in enumerate(buttons):
     r, c = divmod(idx, 4)
     btn = tk.Button(main_frame, text=text, height=2, width=10, font=("Courier New", 12),
                     command=lambda m=mode: convert(m))
-    btn.grid(row=r, column=c, padx=(10 if c == 0 else 0, 0), pady=(10 if r == 0 else 0, 0))
+    # Removed individual padding between buttons to make them stick together
+    btn.grid(row=r, column=c, sticky="nsew")
     btn_widgets.append(btn)
 
-status_label = tk.Label(main_frame, text="Words: 0 - Letters: 0 - All characters: 0",
-                        bg='#f0f0f0', font=("Courier New", 10, "bold"))
-status_label.grid(row=2, column=0, columnspan=4, padx=8, pady=(5, 0), sticky="w")
+# Configure grid weights for buttons to expand evenly
+for i in range(4):
+    main_frame.grid_columnconfigure(i, weight=1)
 
-TextBox = tk.Text(main_frame, height=20, width=54)
-TextBox.grid(row=3, column=0, columnspan=4, padx=(8,0), pady=(5,17))
+# --- Counts + Buttons Row (centered and properly spaced) ---
+counts_frame = tk.Frame(main_frame, bg='#f0f0f0')
+counts_frame.grid(row=2, column=0, columnspan=4, pady=(15, 10), sticky="ew")  # Better vertical spacing
 
-def update_counts(event=None):
-    content = TextBox.get("1.0", "end-1c")
+# Center the controls in the counts frame with more space on the right
+counts_frame.grid_columnconfigure(0, weight=0)  # No left spacer - move everything left
+counts_frame.grid_columnconfigure(1, weight=0)  # Copy button
+counts_frame.grid_columnconfigure(2, weight=0)  # Reset button  
+counts_frame.grid_columnconfigure(3, weight=0)  # Status label
+counts_frame.grid_columnconfigure(4, weight=1)  # Right spacer only
+
+copy_btn = tk.Button(counts_frame, text="Copy", width=6, command=lambda: copy_text())
+copy_btn.grid(row=0, column=1, padx=(0,4), sticky="w")  # Reduced spacing from 8 to 4
+
+reset_btn = tk.Button(counts_frame, text="↻", width=3, command=lambda: reset_text())
+reset_btn.grid(row=0, column=2, padx=(0,8), sticky="w")  # Reduced spacing from 15 to 8
+
+# Fixed-width label with click functionality for large numbers
+status_label = tk.Label(
+    counts_frame,
+    text="Words: 0 Letters: 0 All characters: 0",
+    bg='#f0f0f0',
+    font=("Consolas", 8, "bold"),    # Slightly smaller font for better fit
+    anchor="w",                      # Left-align within the label
+    justify="left",
+    cursor="hand2"                   # Show hand cursor to indicate clickable
+)
+status_label.grid(row=0, column=3, sticky="ew", padx=(0,20))  # Changed to "ew" to expand and use available space
+
+# Store original counts for popup display
+original_counts = {"words": 0, "letters": 0, "all_chars": 0}
+
+def format_number_with_limit(num, limit=3):
+    """Format number with digit limit, add ... if too long"""
+    num_str = str(num)
+    if len(num_str) > limit:
+        return num_str[:limit] + "..."
+    return num_str
+
+def show_full_counts():
+    """Show popup with full count numbers when status label is clicked"""
+    messagebox.showinfo(
+        "Full Text Count",
+        f"Words: {original_counts['words']}\n"
+        f"Letters: {original_counts['letters']}\n"
+        f"All characters: {original_counts['all_chars']}",
+        parent=root
+    )
+
+# Bind click event to status label
+status_label.bind("<Button-1>", lambda e: show_full_counts())
+
+# --- Text Box ---
+TextBox = tk.Text(main_frame, height=20, width=58, font=("Consolas", 10))  # Slightly wider and consistent font
+TextBox.grid(row=3, column=0, columnspan=4, pady=(5,0), sticky="ew")
+
+# Configure main_frame grid weights for proper expansion
+main_frame.grid_columnconfigure(0, weight=1)
+main_frame.grid_columnconfigure(1, weight=1)
+main_frame.grid_columnconfigure(2, weight=1)
+main_frame.grid_columnconfigure(3, weight=1)
+
+# -------------------- Reset / Copy / typing tracking --------------------
+# Undo history system
+text_history = [""]  # Stack to store text history, initialized with empty state
+history_index = -1  # Current position in history (-1 means at latest)
+MAX_HISTORY = 50   # Maximum number of undo steps to keep
+
+def add_to_history(content):
+    """Add current text to history stack"""
+    global text_history, history_index
+    
+    # Don't add if it's the same as the last entry
+    if text_history and content == text_history[-1]:
+        return
+        
+    # If we're not at the end of history (user has used undo), 
+    # remove everything after current position
+    if history_index != -1:
+        text_history = text_history[:len(text_history) - history_index]
+        history_index = -1
+    
+    # Add new content to history
+    text_history.append(content)
+    
+    # Keep history size manageable
+    if len(text_history) > MAX_HISTORY:
+        text_history.pop(0)
+
+def undo_text():
+    """Undo to previous text state (like Ctrl+Z)"""
+    global text_history, history_index
+    
+    if len(text_history) <= 1:
+        return  # Nothing to undo (only empty state exists)
+    
+    # Move to the previous state
+    if history_index == -1:
+        history_index = 1  # Start undoing from the latest state
+    else:
+        history_index += 1  # Continue undoing
+        
+    # Don't go beyond the first state
+    if history_index >= len(text_history):
+        history_index = len(text_history) - 1
+    
+    # Get the text to restore
+    restore_index = len(text_history) - 1 - history_index
+    restore_text = text_history[restore_index]
+        
+    # Update the text box without triggering history
+    TextBox.delete("1.0", "end")
+    TextBox.insert("1.0", restore_text)
+    
+    # Update counters without adding to history
+    try:
+        content = restore_text
+    except Exception:
+        content = ""
+    
     words = len(content.split())
     letters = sum(c.isalpha() for c in content)
     all_chars = len(content)
-    status_label.config(text=f"Words: {words} - Letters: {letters} - All characters: {all_chars}")
+    
+    original_counts["words"] = words
+    original_counts["letters"] = letters
+    original_counts["all_chars"] = all_chars
+    
+    words_display = format_number_with_limit(words)
+    letters_display = format_number_with_limit(letters)
+    all_chars_display = format_number_with_limit(all_chars)
+    
+    status_label.config(text=f"Words: {words_display}  Letters: {letters_display}  All characters: {all_chars_display}")
+    
+    # Ensure the text box reflects the restored state
+    TextBox.update()
 
-TextBox.bind("<KeyRelease>", update_counts)
-TextBox.bind("<<Paste>>", lambda e: root.after(10, update_counts))
+# original_text: last *pre-transformation* text saved when user triggers a transform (button)
+# last_user_nonempty: last non-empty text while typing/pasting
+# last_user_before_clear: snapshot of last_user_nonempty when user clears the box
+original_text = None
+last_user_nonempty = None
+last_user_before_clear = None
+
+def reset_text():
+    """Undo to the previous text state (like Windows Ctrl+Z)."""
+    undo_text()
+
+def copy_text():
+    """Copy the current TextBox contents to system clipboard (Tk clipboard)."""
+    try:
+        content = TextBox.get("1.0", "end-1c")
+        root.clipboard_clear()
+        root.clipboard_append(content)
+    except Exception as e:
+        log_error(f"Copy failed: {str(e)}")
+
+def update_counts_and_user_state(event=None):
+    """Update counters and track last typed/pasted non-empty text and snapshots when cleared."""
+    global last_user_nonempty, last_user_before_clear, original_counts, original_text, history_index
+    try:
+        content = TextBox.get("1.0", "end-1c")
+    except Exception:
+        content = ""
+    
+    # Only add to history for user-initiated changes (not during undo)
+    if event is not None:
+        add_to_history(content)
+        history_index = -1  # Reset to latest state
+    
+    # Update counters
+    words = len(content.split())
+    letters = sum(c.isalpha() for c in content)
+    all_chars = len(content)
+    
+    # Store original counts for popup
+    original_counts["words"] = words
+    original_counts["letters"] = letters
+    original_counts["all_chars"] = all_chars
+    
+    # Format numbers with digit limit
+    words_display = format_number_with_limit(words)
+    letters_display = format_number_with_limit(letters)
+    all_chars_display = format_number_with_limit(all_chars)
+    
+    # Update display with formatted numbers (removed dashes to save space)
+    status_label.config(text=f"Words: {words_display}  Letters: {letters_display}  All characters: {all_chars_display}")
+    
+    # Track last non-empty typed/pasted text
+    if content.strip() != "":
+        last_user_nonempty = content
+        # Reset original_text when user types new content (so reset goes back to this new content)
+        original_text = None
+    else:
+        # content is empty -> user cleared; take snapshot
+        if last_user_nonempty:
+            last_user_before_clear = last_user_nonempty
+
+# Bind typing & key releases to update counts and typed-state
+TextBox.bind("<KeyRelease>", update_counts_and_user_state)
+
+# When a paste occurs (mouse or Ctrl+V), update typed-state after paste has applied
+def on_paste_event(e=None):
+    def delayed_update():
+        update_counts_and_user_state(e)  # Pass the event to ensure history update
+    root.after(10, delayed_update)
+
+TextBox.bind("<<Paste>>", on_paste_event)
+TextBox.bind("<Control-v>", on_paste_event)
+TextBox.bind("<Control-V>", on_paste_event)
 
 def convert(mode):
-    content = TextBox.get("1.0", "end-1c")
+    """Transform text but preserve original input before transformation (saved into original_text)."""
+    global original_text, last_user_nonempty, history_index
+    try:
+        content = TextBox.get("1.0", "end-1c")
+    except Exception:
+        content = ""
+    if content.strip() != "":
+        # Add current state to history before transformation
+        add_to_history(content)
+        # Only save original text if it hasn't been saved yet (first transformation only)
+        if original_text is None:
+            original_text = content
+    
     result = transform_text(content, mode)
     TextBox.delete("1.0", "end")
     TextBox.insert("1.0", result)
-    update_counts()
+    
+    # Add transformed result to history and reset history position
+    add_to_history(result)
+    history_index = -1
+    
+    # after transform, counts & user-state should reflect new content
+    update_counts_and_user_state(None)  # Pass None to avoid redundant history updates
+
+# Initial count update
+update_counts_and_user_state()
 
 # -------------------- Setup Tray --------------------
 setup_tray()
