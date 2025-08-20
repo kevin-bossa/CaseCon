@@ -11,6 +11,6 @@
         "count": "29+91+56+46",
         "launch": "29+91+56+47"
     },
-    "start_with_windows": 1,
-    "start_hidden_tray": 1
+    "start_with_windows": 0,
+    "start_hidden_tray": 0
 }
