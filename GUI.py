@@ -40,7 +40,6 @@ try:
 except Exception as e:
     error_msg = f"Failed to import textcore: {str(e)}\n{traceback.format_exc()}"
     log_error(error_msg)
-    print(error_msg)
     sys.exit(1)
 
 # -------------------- Key name handling --------------------
@@ -85,25 +84,47 @@ def get_scancode_for_char(target_char):
 
 # -------------------- Windows startup --------------------
 def add_to_startup():
+    """Direct registry entry - no batch files needed"""
     try:
-        app_path = os.path.abspath(__file__)
-        batch_path = os.path.join(script_dir, "start_casecon.bat")
-        python_path = sys.executable.replace('python.exe', 'pythonw.exe')
-        batch_content = f'@echo off\ncd /d "{script_dir}"\n"{python_path}" "{app_path}"\n'
-        with open(batch_path, 'w') as f:
-            f.write(batch_content)
+        # For compiled executable, sys.executable will be your .exe path
+        app_path = sys.executable
+        
+        # For development (if running as .py file), use the script path
+        if app_path.endswith('python.exe') or app_path.endswith('pythonw.exe'):
+            app_path = os.path.abspath(__file__)
+            # Try to use pythonw.exe if available
+            python_exe = sys.executable
+            if python_exe.endswith('python.exe'):
+                pythonw_path = python_exe.replace('python.exe', 'pythonw.exe')
+                if os.path.exists(pythonw_path):
+                    startup_command = f'"{pythonw_path}" "{app_path}"'
+                else:
+                    startup_command = f'"{python_exe}" "{app_path}"'
+            else:
+                startup_command = f'"{python_exe}" "{app_path}"'
+        else:
+            # Already an executable
+            startup_command = f'"{app_path}"'
+        
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
                              r"Software\Microsoft\Windows\CurrentVersion\Run",
                              0, winreg.KEY_SET_VALUE)
-        winreg.SetValueEx(key, "CaseCon", 0, winreg.REG_SZ, f'"{batch_path}"')
+        winreg.SetValueEx(key, "CaseCon", 0, winreg.REG_SZ, startup_command)
         winreg.CloseKey(key)
+        
+        log_error(f"Successfully added to startup: {startup_command}")
+        
     except Exception as e:
         log_error(f"Failed to add to startup: {str(e)}\n{traceback.format_exc()}")
 
 def remove_from_startup():
     try:
+        # Clean up any old batch file from previous versions
         batch_path = os.path.join(script_dir, "start_casecon.bat")
-        if os.path.exists(batch_path): os.remove(batch_path)
+        if os.path.exists(batch_path): 
+            os.remove(batch_path)
+            
+        # Remove from registry
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
                              r"Software\Microsoft\Windows\CurrentVersion\Run",
                              0, winreg.KEY_SET_VALUE)
@@ -184,7 +205,7 @@ tray_icon = None
 # -------------------- Main Window --------------------
 root = tk.Tk()
 root.title("CaseCon")
-root.geometry("480x520")  # Increased width and height to accommodate better spacing
+root.geometry("480x520")  # Fixed window size
 root.resizable(False, False)
 
 try:
@@ -207,7 +228,7 @@ tab_settings = tk.Frame(notebook, bg='#f0f0f0')
 notebook.add(tab_settings, text="Settings")
 
 tab_tray = tk.Frame(notebook, bg='#f0f0f0')
-notebook.add(tab_tray, text="Minimize to tray")
+notebook.add(tab_tray, text="Send to tray")
 
 def on_tab_changed(event):
     selected_tab = event.widget.select()
@@ -334,7 +355,8 @@ row += 1
 
 start_with_windows_var = tk.IntVar(value=get_setting("start_with_windows"))
 tk.Checkbutton(settings_frame, text="Start with Windows", variable=start_with_windows_var,
-               command=lambda: add_to_startup() if start_with_windows_var.get() else remove_from_startup(),
+               command=lambda: (update_setting("start_with_windows", start_with_windows_var.get()),
+                                add_to_startup() if start_with_windows_var.get() else remove_from_startup()),
                bg='#f0f0f0').grid(row=row, column=0, columnspan=2, sticky="w", pady=(5,0))
 row += 1
 
@@ -441,20 +463,24 @@ def execute_transformation(mode):
                 return  # Silently ignore if a popup is already open
             try:
                 result = count_selected_text()
-                def show_count_popup():
-                    global count_popup_active
-                    try:
-                        count_popup_active = True
-                        messagebox.showinfo(
-                            "Text Count",
-                            f"Words: {result['words']} - Letters: {result['letters']} - All characters: {result['all_chars']}",
-                            parent=root
-                        )
-                        count_popup_active = False
-                    except Exception as e:
-                        count_popup_active = False
-                        log_error(f"Failed to show count popup: {str(e)}")
-                root.after(0, show_count_popup)
+                # --- CORRECTED LOGIC START ---
+                # Only show the popup if there is selected text (all_chars > 0)
+                if result['all_chars'] > 0:
+                    def show_count_popup():
+                        global count_popup_active
+                        try:
+                            count_popup_active = True
+                            messagebox.showinfo(
+                                "Text Count",
+                                f"Words: {result['words']} - Letters: {result['letters']} - Characters: {result['all_chars']}",
+                                parent=root
+                            )
+                            count_popup_active = False
+                        except Exception as e:
+                            count_popup_active = False
+                            log_error(f"Failed to show count popup: {str(e)}")
+                    root.after(0, show_count_popup)
+                # --- CORRECTED LOGIC END ---
             except Exception as e:
                 count_popup_active = False
                 log_error(f"Error counting selection: {str(e)}\n{traceback.format_exc()}")
@@ -475,7 +501,6 @@ def initialize_global_hook():
         try:
             keyboard.hook(global_key_handler)
             main_hook_active = True
-            log_error("Global keyboard hook initialized successfully")
         except Exception as e:
             log_error(f"Failed to initialize global hook: {str(e)}")
 
@@ -488,7 +513,6 @@ def cleanup_global_hook():
             main_hook_active = False
             with pressed_lock:
                 pressed_scancodes.clear()
-            log_error("Global keyboard hook cleaned up")
         except Exception as e:
             log_error(f"Error cleaning up global hook: {str(e)}")
 
@@ -682,30 +706,34 @@ for i in range(4):
 counts_frame = tk.Frame(main_frame, bg='#f0f0f0')
 counts_frame.grid(row=2, column=0, columnspan=4, pady=(15, 10), sticky="ew")  # Better vertical spacing
 
-# Center the controls in the counts frame with more space on the right
-counts_frame.grid_columnconfigure(0, weight=0)  # No left spacer - move everything left
-counts_frame.grid_columnconfigure(1, weight=0)  # Copy button
-counts_frame.grid_columnconfigure(2, weight=0)  # Reset button  
-counts_frame.grid_columnconfigure(3, weight=0)  # Status label
-counts_frame.grid_columnconfigure(4, weight=1)  # Right spacer only
+# Updated grid configuration to accommodate 4 buttons and flexible label
+counts_frame.grid_columnconfigure(0, weight=0)  # Copy button
+counts_frame.grid_columnconfigure(1, weight=0)  # Reset button
+counts_frame.grid_columnconfigure(2, weight=0)  # Delete button
+counts_frame.grid_columnconfigure(3, weight=1)  # Status label (flexible width)
 
-copy_btn = tk.Button(counts_frame, text="Copy", width=6, command=lambda: copy_text())
-copy_btn.grid(row=0, column=1, padx=(0,4), sticky="w")  # Reduced spacing from 8 to 4
+copy_btn = tk.Button(counts_frame, text="Copy", width=5, command=lambda: copy_text())
+copy_btn.grid(row=0, column=0, padx=(0,3), sticky="w")
 
 reset_btn = tk.Button(counts_frame, text="↻", width=3, command=lambda: reset_text())
-reset_btn.grid(row=0, column=2, padx=(0,8), sticky="w")  # Reduced spacing from 15 to 8
+reset_btn.grid(row=0, column=1, padx=(0,3), sticky="w")
+
+# NEW: Delete button
+delete_btn = tk.Button(counts_frame, text="✕", width=3, fg="red", command=lambda: delete_text())
+delete_btn.grid(row=0, column=2, padx=(0,6), sticky="w")
 
 # Fixed-width label with click functionality for large numbers
 status_label = tk.Label(
     counts_frame,
-    text="Words: 0 Letters: 0 All characters: 0",
+    text="Words: 0 Letters: 0 Characters: 0",
     bg='#f0f0f0',
     font=("Consolas", 8, "bold"),    # Slightly smaller font for better fit
     anchor="w",                      # Left-align within the label
     justify="left",
-    cursor="hand2"                   # Show hand cursor to indicate clickable
+    cursor="hand2",                  # Show hand cursor to indicate clickable
+    wraplength=300                   # Wrap text if it exceeds this width
 )
-status_label.grid(row=0, column=3, sticky="ew", padx=(0,20))  # Changed to "ew" to expand and use available space
+status_label.grid(row=0, column=3, sticky="w")
 
 # Store original counts for popup display
 original_counts = {"words": 0, "letters": 0, "all_chars": 0}
@@ -723,24 +751,35 @@ def show_full_counts():
         "Full Text Count",
         f"Words: {original_counts['words']}\n"
         f"Letters: {original_counts['letters']}\n"
-        f"All characters: {original_counts['all_chars']}",
+        f"Characters: {original_counts['all_chars']}",
         parent=root
     )
 
 # Bind click event to status label
 status_label.bind("<Button-1>", lambda e: show_full_counts())
 
-# --- Text Box ---
-TextBox = tk.Text(main_frame, height=20, width=58, font=("Consolas", 10))  # Slightly wider and consistent font
-TextBox.grid(row=3, column=0, columnspan=4, pady=(5,0), sticky="ew")
+# --- Text Box with Scrollbars ---
+TextBox = tk.Text(main_frame, height=20, width=58, font=("Consolas", 10), wrap="none")  # wrap="none" allows horizontal scroll
+TextBox.grid(row=3, column=0, columnspan=4, pady=(5,0), sticky="nsew")
+
+# Vertical scrollbar
+text_scroll_y = tk.Scrollbar(main_frame, orient="vertical", command=TextBox.yview)
+text_scroll_y.grid(row=3, column=4, sticky="ns")
+TextBox.config(yscrollcommand=text_scroll_y.set)
+
+# Horizontal scrollbar
+text_scroll_x = tk.Scrollbar(main_frame, orient="horizontal", command=TextBox.xview)
+text_scroll_x.grid(row=4, column=0, columnspan=4, sticky="ew")
+TextBox.config(xscrollcommand=text_scroll_x.set)
 
 # Configure main_frame grid weights for proper expansion
 main_frame.grid_columnconfigure(0, weight=1)
 main_frame.grid_columnconfigure(1, weight=1)
 main_frame.grid_columnconfigure(2, weight=1)
 main_frame.grid_columnconfigure(3, weight=1)
+main_frame.grid_rowconfigure(3, weight=1)  # TextBox expands vertically
 
-# -------------------- Reset / Copy / typing tracking --------------------
+# -------------------- Reset / Copy / Delete / typing tracking --------------------
 # Undo history system
 text_history = [""]  # Stack to store text history, initialized with empty state
 history_index = -1  # Current position in history (-1 means at latest)
@@ -810,7 +849,7 @@ def undo_text():
     letters_display = format_number_with_limit(letters)
     all_chars_display = format_number_with_limit(all_chars)
     
-    status_label.config(text=f"Words: {words_display}  Letters: {letters_display}  All characters: {all_chars_display}")
+    status_label.config(text=f"Words: {words_display}  Letters: {letters_display}  Characters: {all_chars_display}")
     
     # Ensure the text box reflects the restored state
     TextBox.update()
@@ -825,6 +864,19 @@ last_user_before_clear = None
 def reset_text():
     """Undo to the previous text state (like Windows Ctrl+Z)."""
     undo_text()
+
+def delete_text():
+    """Delete all text from the TextBox and add to history for undo functionality."""
+    try:
+        current_content = TextBox.get("1.0", "end-1c")
+        # Only add to history if there's actually content to delete
+        if current_content.strip():
+            add_to_history(current_content)  # Save current state before deleting
+        TextBox.delete("1.0", "end")
+        add_to_history("")  # Save empty state
+        update_counts_and_user_state(None)  # Update counts without adding to history again
+    except Exception as e:
+        log_error(f"Delete failed: {str(e)}")
 
 def copy_text():
     """Copy the current TextBox contents to system clipboard (Tk clipboard)."""
@@ -864,7 +916,7 @@ def update_counts_and_user_state(event=None):
     all_chars_display = format_number_with_limit(all_chars)
     
     # Update display with formatted numbers (removed dashes to save space)
-    status_label.config(text=f"Words: {words_display}  Letters: {letters_display}  All characters: {all_chars_display}")
+    status_label.config(text=f"Words: {words_display}  Letters: {letters_display}  Characters: {all_chars_display}")
     
     # Track last non-empty typed/pasted text
     if content.strip() != "":
@@ -920,10 +972,17 @@ update_counts_and_user_state()
 # -------------------- Setup Tray --------------------
 setup_tray()
 
-actual_startup_status = is_in_startup()
-if actual_startup_status != bool(get_setting("start_with_windows")):
-    update_setting("start_with_windows", int(actual_startup_status))
-    start_with_windows_var.set(int(actual_startup_status))
+# --- CORRECTED INITIAL SETUP LOGIC ---
+# Check the desired startup state from the settings file
+should_start_with_windows = get_setting("start_with_windows")
+start_with_windows_var.set(should_start_with_windows)  # Sync the checkbox state first
+
+# Now, enforce the setting onto the system registry
+if should_start_with_windows:
+    add_to_startup()
+else:
+    remove_from_startup()
+# --- END OF CORRECTION ---
 
 if get_setting("start_hidden_tray"):
     hide_window()

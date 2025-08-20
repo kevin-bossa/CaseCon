@@ -32,4 +32,5 @@ settings.json
 
 # Ignore specific files from the directory
 casecon.error.log
+casecon_debug.log
 GUIL.py

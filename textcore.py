@@ -103,7 +103,7 @@ def load_json():
 
         default_settings = {
             "shortcuts": default_shortcuts,
-            "start_with_windows": 0,
+            "start_with_windows": 1,
             "start_hidden_tray": 0
         }
 
@@ -205,22 +205,19 @@ def count_selected_text(retries=10):
         for _ in range(10):  # up to 0.5s
             time.sleep(0.05)
             candidate = pyperclip.paste()
-            # accept a candidate even if equal to old_clipboard (selected text may be same)
-            if candidate is not None and candidate != "":
-                # If it changed AND is not empty, take it
-                if candidate != old_clipboard:
-                    new_text = candidate
-                    break
-                # If it didn't change but not empty, maybe the selection equals clipboard already
-                elif attempt == retries - 1:
-                    new_text = candidate
-                    break
+            # If it changed and is not empty, take it
+            if candidate and candidate != old_clipboard:
+                new_text = candidate
+                break
         if new_text:
             break
-
-    # Fallback: if nothing new, use old_clipboard (last-known text)
+    
+    # --- CORRECTED LOGIC START ---
+    # If the clipboard content did not change after Ctrl+C, it means no text was selected.
+    # In this case, we should explicitly set new_text to an empty string.
     if new_text is None:
-        new_text = old_clipboard or ""
+        new_text = ""
+    # --- CORRECTED LOGIC END ---
 
     words = len(new_text.split())
     letters = sum(1 for c in new_text if c.isalpha())
